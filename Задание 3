@@ -1,0 +1,119 @@
+using System;
+using System.Collections.Generic;
+using System.Xml;
+
+namespace LogConverter
+{
+    public class Event
+    {
+        public DateTime Date { get; set; }
+        public string Result { get; set; }
+        public string IpFrom { get; set; }
+        public string Method { get; set; }
+        public string UrlTo { get; set; }
+        public int Response { get; set; }
+
+        public Event(DateTime date, string result, string ipFrom, string method, string urlTo, int response)
+        {
+            Date = date;
+            Result = result;
+            IpFrom = ipFrom;
+            Method = method;
+            UrlTo = urlTo;
+            Response = response;
+        }
+
+        public override string ToString()
+        {
+            return $"Date: {Date}, Result: {Result}, IP From: {IpFrom}, Method: {Method}, URL To: {UrlTo}, Response: {Response}";
+        }
+    }
+
+    public static class LogConverter
+    {
+        public static Log ConvertXmlToLog(string xmlString)
+        {
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(xmlString);
+
+            List<Event> events = new List<Event>();
+
+            XmlNodeList eventNodes = xmlDoc.SelectNodes("/log/event");
+            foreach (XmlNode eventNode in eventNodes)
+            {
+                string dateString = eventNode.Attributes["date"].Value.Trim();
+                DateTime date = DateTime.ParseExact(dateString, "dd/MMM/yyyy:HH:mm:ss", null);
+
+                string result = eventNode.Attributes["result"].Value.Trim();
+
+                string ipFrom = eventNode.SelectSingleNode("ip-from").InnerText.Trim();
+                string method = eventNode.SelectSingleNode("method").InnerText.Trim();
+                string urlTo = eventNode.SelectSingleNode("url-to").InnerText.Trim();
+
+                int response = int.Parse(eventNode.SelectSingleNode("response").InnerText.Trim());
+
+                Event newEvent = new Event(date, result, ipFrom, method, urlTo, response);
+                events.Add(newEvent);
+            }
+
+            return new Log(events);
+        }
+    }
+
+    public class Log
+    {
+        public List<Event> Events { get; set; }
+
+        public Log(List<Event> events)
+        {
+            Events = events;
+        }
+
+        public override string ToString()
+        {
+            string result = "Log:\n";
+            foreach (Event logEvent in Events)
+            {
+                result += logEvent.ToString() + "\n";
+            }
+
+            return result;
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            string xml = @"<log>
+                            <event date=""27/May/1999:02:32:46 "" result=""success"">
+                                <ip-from> 195.151.62.18 </ip-from>
+                                <method>GET</method>
+                                <url-to> /mise/</url-to>
+                                <response>200</response>
+                            </event>
+                            <event date="" 27/May/1999:02:41:47 "" result=""success"">
+                                <ip-from> 195.209.248.12 </ip-from>
+                                <method>GET</method>
+                                <url-to>soft.htm</url-to>
+                                <response>200</response>
+                            </event>
+                            <event date=""27/May/1999:02:32:46 "" result=""success"">
+                                <ip-from> 195.151.62.18 </ip-from>
+                                <method>GET</method>
+                                <url-to> /mise/</url-to>
+                                <response>200</response>
+                            </event>
+                            <event date="" 27/May/1999:02:41:47 "" result=""success"">
+                                <ip-from> 195.209.248.12 </ip-from>
+                                <method>GET</method>
+                                <url-to>soft.htm</url-to>
+                                <response>200</response>
+                            </event>
+                        </log>";
+
+            Log log = LogConverter.ConvertXmlToLog(xml);
+            Console.WriteLine(log);
+        }
+    }
+}
